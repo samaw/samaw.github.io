@@ -25,8 +25,8 @@
         })(tag, urlHash);
         return text;
       }
-      document.querySelector('#spot').innerText = handleURLHash(location.hash.slice(1));
-      window.addEventListener('hashchange',()=>{document.querySelector('#spot').innerText = handleURLHash(location.hash.slice(1));} ,false);
+      document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));
+      window.addEventListener('hashchange',()=>{document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));} ,false);
     </script>
   </body>
 </html>
