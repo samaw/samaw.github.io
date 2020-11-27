@@ -9,21 +9,24 @@
     <p>Hi! Work in progress...</p>
     <div id="spot"></div>
     <script>
-      let urlHash = location.hash.slice(1);
-      let tag = urlHash.includes('data:')?
+      let parseURLHash = (urlHash) => {
+        let tag = urlHash.includes('data:')?
           'data':
           'other';
-      let text = ((t, h)=>{
-        switch (t){
-          case 'data':{
-            let idx = h.indexOf(',') + 1;
-            return atob(h.slice(idx));
+        let text = ((t, h)=>{
+          switch (t){
+            case 'data':{
+              let idx = h.indexOf(',') + 1;
+              return atob(h.slice(idx));
+            }
+            case 'other':{return h;}
+            default:{ return '';}
           }
-          case 'other':{return h;}
-          default:{ return '';}
-        }
-      })(tag, urlHash);
-      document.querySelector('#spot').innerText = text;
+        })(tag, urlHash);
+        return text;
+      }
+      document.querySelector('#spot').innerText = handleURLHash(location.hash.slice(1));
+      window.addEventListener('hashchange',()=>{document.querySelector('#spot').innerText = handleURLHash(location.hash.slice(1));} ,false);
     </script>
   </body>
 </html>
