@@ -9,7 +9,21 @@
     <p>Hi! Work in progress...</p>
     <div id="spot"></div>
     <script>
-      document.querySelector('#spot').innerText = window.location.hash;
+      let urlHash = location.hash.slice(1);
+      let tag = urlHash.includes('data:')?
+          'data':
+          'other';
+      let text = ((t, h)=>{
+        switch (t){
+          case 'data':{
+            let idx = h.indexOf(',') + 1;
+            return atob(h.slice(idx));
+          }
+          case 'other':{return h;}
+          default:{ return '';}
+        }
+      })(tag, urlHash);
+      document.querySelector('#spot').innerText = text;
     </script>
   </body>
 </html>
