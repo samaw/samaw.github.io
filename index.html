@@ -19,7 +19,13 @@
               let idx = h.indexOf(',') + 1;
               return atob(h.slice(idx));
             }
-            case 'other':{return h;}
+            case 'other':{
+              try{
+                return atob(h);
+              }catch(e){
+                return h;
+              }
+            }
             default:{ return '';}
           }
         })(tag, urlHash);
