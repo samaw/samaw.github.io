@@ -12,14 +12,13 @@
     <script>
       let parseURLHash = (urlHash) => {
         let isDataURL = urlHash.includes('data:');
-        let isJSON = urlHash.includes('application/json');
-        let text = isDataURL? urlHash.slice(urlHash.indexOf(',') + 1): urlHash;
+        let isJSON = urlHash.includes('application/json,');
+        let isText = urlHash.includes('text/plain,');
+        let text = isDataURL? urlHash.slice(urlHash.indexOf(',') + 1): isText? urlHash.slice(urlHash.indexOf('text/plain,') + 11): urlHash;
         let decoded = atob(text);
-        return btoa(decoded) === text ?
-          isJSON?
-          JSON.parse(decoded):
-          decoded:
-          text;
+        return isJSON? JSON.parse(decoded):
+               isText? text:
+               decoded;
       }
       document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));
       window.addEventListener('hashchange',()=>{document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));} ,false);
