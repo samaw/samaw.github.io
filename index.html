@@ -15,8 +15,8 @@
         let isJSON = urlHash.includes('application/json');
         let isBase64 = urlHash.includes('base64,');
         let text = isDataURL || isBase64? urlHash.slice(urlHash.indexOf(',') + 1): urlHash;
-        return isJSON? JSON.parse(isBase64? atob(text) : text):
-               isBase64? atob(text) : text;
+        return isJSON? JSON.parse(isBase64? atob(text) : decodeURI(text)):
+               isBase64? atob(text) : decodeURI(text);
       }
       document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));
       window.addEventListener('hashchange',()=>{document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));} ,false);
