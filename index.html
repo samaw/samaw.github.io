@@ -1,5 +1,6 @@
 <html>
   <head>
+    <link rel="shortcut icon" href="#">
     <title>Hi, I'm new.</title>
     <style>
       body: {background-color:black;color: white;}
@@ -10,26 +11,15 @@
     <div id="spot"></div>
     <script>
       let parseURLHash = (urlHash) => {
-        let tag = urlHash.includes('data:')?
-          'data':
-          'other';
-        let text = ((t, h)=>{
-          switch (t){
-            case 'data':{
-              let idx = h.indexOf(',') + 1;
-              return atob(h.slice(idx));
-            }
-            case 'other':{
-              try{
-                return atob(h);
-              }catch(e){
-                return h;
-              }
-            }
-            default:{ return '';}
-          }
-        })(tag, urlHash);
-        return text;
+        let isDataURL = urlHash.includes('data:');
+        let isJSON = urlHash.includes('application/json');
+        let text = isDataURL? urlHash.slice(urlHash.indexOf(',') + 1): urlHash;
+        let decoded = atob(text);
+        return btoa(decoded) === text ?
+          isJSON?
+          JSON.parse(decoded):
+          decoded:
+          text;
       }
       document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));
       window.addEventListener('hashchange',()=>{document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));} ,false);
