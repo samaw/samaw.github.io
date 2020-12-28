@@ -9,7 +9,14 @@
   <body>
     <p>Hi! Work in progress...</p>
     <div id="spot"></div>
-    <script>
+    <script type="module">
+      import functions from "https://samaw.github.io/Interactive-webapp/modules/functions.mjs";
+      import interactive from "https://samaw.github.io/Interactive-webapp/modules/interactive.js";
+      globalThis.functions = functions;
+      globalThis.interactive = interactive;
+      const {nChooseK, diceValueProbability} = functions;
+      const {Draw, Controls, KeyMap} = interactive;
+      //...
       let parseURLHash = (urlHash) => {
         let isDataURL = urlHash.includes('data:');
         let isJSON = urlHash.includes('application/json');
@@ -20,248 +27,70 @@
       }
       document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));
       window.addEventListener('hashchange',()=>{document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));} ,false);
-      //
-
-void globalThis.document.querySelector(`body`).setAttribute(`style`,`margin: 0px; background: black; touch-action: none`);
-let canvas = globalThis.document.querySelector(`canvas`) ??
-  globalThis.document.querySelector(`body`).appendChild(globalThis.document.createElement(`canvas`));
-void canvas.setAttribute(`style`,`display:block; position: absolute; image-rendering: pixelated; height: 100vh; width: 100vw`);
-let context = canvas.getContext(`2d`);
-context.strokeStyle = 'rgb(200,200,200)';
-context.fillStyle = 'rgb(200,200,200)';
-context.lineWidth = 2;
-context.imageSmoothingEnabled = false;
-void globalThis.addEventListener('resize',
-                                 (function resizer(...drawingContexts) {
-                                    const interestedProperties = [`strokeStyle`,`fillStyle`,
-                                                                  `lineCap`, `lineDashOffset`,
-                                                                  `lineJoin`, `lineWidth`,
-                                                                  `miterLimit`,`imageSmoothingEnabled`,];
-                                    return ()=> {
-                                      for (const drawingContext of drawingContexts) {
-                                        const savedState = new Map( interestedProperties.map(
-                                          (property)=> [property, drawingContext[property]] ) );
-                                        drawingContext.canvas.height = drawingContext.canvas.clientHeight;
-                                        drawingContext.canvas.width = drawingContext.canvas.clientWidth;
-                                        void savedState.forEach( (value, key)=> drawingContext[key] = value );
-                                        void drawingContext.setTransform( 1, 0, 0, -1,
-                                                       Math.floor(canvas.clientWidth*0.5), Math.floor(canvas.clientHeight*0.5));
-                                      }
-                                      return void 0;
-                                    }
-                                  })(context));
-void globalThis.dispatchEvent(new Event(`resize`));
-
-let viewport = {
-  get bottom() {return -context.canvas.clientHeight*0.5},
-  get top() {return context.canvas.clientHeight*0.5},
-  get left() {return -context.canvas.clientWidth*0.5},
-  get right() {return context.canvas.clientWidth*0.5},
-  get width() {return context.canvas.clientWidth},
-  get height() {return context.canvas.clientHeight},
-  clear() {
-    context.clearRect(
-      viewport.left,
-      viewport.bottom,
-      viewport.width,
-      viewport.height);
-    return void 0;
-  },
-};
-
-class Vector{
-  constructor(e1,e2){
-    this.e1 = e1;
-    this.e2 = e2;
-    Object.freeze(this);
-  }
-  static of(e1,e2){
-    return Reflect.construct(Vector, [e1,e2]);
-  }
-  static from(that){
-    return Array.isArray(that)? Reflect.construct(Vector,that): Vector.of(that?.e1, that?.e2);
-  }
-  add(that){
-    return Vector.of(this.e1 + that.e1, this.e2 + that.e2);
-  }
-  get aInv(){
-    return Vector.of(-this.e1, -this.e2);
-  }
-  scale(that){
-    return Vector.of(this.e1 * that, this.e2 * that);
-  }
-  dist(that){
-    let vec = that? that.add(this.aInv): this;
-    return Math.sqrt(vec.e1**2 + vec.e2**2);
-  }
-}
-  
-class PointMass {
-  constructor({position, velocity, dampening = 0.999, mass = 1, color = '#ffffff'}={}){
-    this.pos = position;
-    this.vel = velocity;
-    this.damp = dampening;
-    this.mass = mass;
-    this.massInv = 1/mass;
-    this.color = color;
-  }
-  static of({position, velocity, mass, color, dampening}={}){
-    return Reflect.construct(PointMass, [{position, velocity, mass, color, dampening}]);
-  }
-  integrate(time, acceleration){
-    const classThis = this;
-    let position = this.pos.add(this.vel.scale(time));
-    let velocity = this.vel.scale(this.damp**time).add(acceleration.scale(time));
-    return PointMass.of({
-      mass: classThis.mass,
-      color: classThis.color,
-      dampening: classThis.damp,
-      position,
-      velocity,
-    });
-  }
-}
-
-// gamepad is somewhat complex..
-
-//I want a snapshot of what is being pressed...
-// more complext controls with some kind of history... will have to wait :D
-//maybe base this off the gamepad?
-
-class NonGamepadInterface {
-  constructor(){
-    let buttons = {
-      '0':{value:0,pressed:false},
-      '1':{value:0,pressed:false},
-      '2':{value:0,pressed:false},
-      '3':{value:0,pressed:false},
-      '5':{value:0,pressed:false},
-      '7':{value:0,pressed:false},
-      '10':{value:0,pressed:false},
-      '11':{value:0,pressed:false},
-    };
-    let axes = [0,0,0,0];
-    let axesMap = new Map([
-      ['w', {index:1, value: -1}],['s', {index:1, value: 1}],
-      ['a', {index:0, value: -1}],['d', {index:0, value: 1}],
-      ['ArrowUp', {index:1, value: -1}],['ArrowDown', {index:1, value: 1}],
-      ['ArrowLeft', {index:0, value: -1}],['ArrowRight', {index:0, value: 1}],
-    ]);
-    let buttonMap = new Map([
-      ['c',11], ['Escape', 1],['Tab',3],
-      ['q',2],['e',0],['Space',10],
-      ['k',1],['j',0]
-    ]);
-    this.buttons = buttons;
-    this.axes = axes;
-    window.addEventListener('pointermove',(event)=>(
-      axes[2] = Math.max(Math.min(-1, event.movementX), 1),
-      axes[3] = Math.max(Math.min(-1, event.movementY), 1),
-      event.preventDefault()
-    ));
-    window.addEventListener('pointerdown',(event)=>(
-      (event.buttons == 1 && (buttons[7].value = 1, buttons[7].pressed = true)),
-      (event.buttons == 2 && (buttons[5].value = 1, buttons[5].pressed = true)),
-      event.preventDefault()
-    ));
-    window.addEventListener('pointerup',(event)=>(
-      ((buttons[7].value = 0, buttons[7].pressed = false)),
-      ((buttons[5].value = 0, buttons[5].pressed = false)),
-      event.preventDefault()
-    ));
-    window.addEventListener('contextmenu', (event)=> event.preventDefault());
-    window.addEventListener('keydown',(event)=>(
-      (axesMap.has(event.key) && (axes[axesMap.get(event.key).index] = axesMap.get(event.key).value)),
-      (buttonMap.has(event.key) && (buttons[buttonMap.get(event.key)].pressed = true,
-                                    buttons[buttonMap.get(event.key)].value = 1)),
-      event.preventDefault()
-    ));
-    window.addEventListener('keyup',(event)=>(
-      (axesMap.has(event.key) && (axes[axesMap.get(event.key).index] = 0)),
-      (buttonMap.has(event.key) && (buttons[buttonMap.get(event.key)].pressed = false,
-                                   buttons[buttonMap.get(event.key)].value = 0)),
-      event.preventDefault()
-    ));
-  }
-  get timestamp(){
-    return performance.now();
-  }
-}
-
-// Gamepad returns a snapshot...
-
-class GamepadInterface {
-  constructor(index){
-    this.index = index;
-  }
-  get gamepads(){
-    return navigator.getGamepads();
-  }
-  get buttons(){
-    return this.gamepads[this.index]?.buttons ?? [];
-  }
-  get axes(){
-    return this.gamepads[this.index]?.axes ?? [0,0,0,0];
-  }
-  get timestamp(){
-    return this.gamepads[this.index]?.timestamp ?? 0;
-  }
-}
-
-class Controls{
-  constructor(){
-    this.controls = {
-      nonpad: new NonGamepadInterface,
-      pad: new GamepadInterface,
-    }
-    this.index;
-    window.addEventListener('gamepadconnected', (function (event){
-      if (this.index == undefined){
-        this.index = event.gamepad.index;
-        this.controls.pad = new GamepadInterface(this.index);
+      //...
+      let draw = new Draw;
+      class Vector{
+        constructor(e1,e2){
+          this.e1 = e1;
+          this.e2 = e2;
+          Object.freeze(this);
+        }
+        static of(e1,e2){
+          return Reflect.construct(Vector, [e1,e2]);
+        }
+        static from(that){
+          return Array.isArray(that)? Reflect.construct(Vector,that): Vector.of(that?.e1, that?.e2);
+        }
+        add(that){
+          return Vector.of(this.e1 + that.e1, this.e2 + that.e2);
+        }
+        get aInv(){
+          return Vector.of(-this.e1, -this.e2);
+        }
+        scale(that){
+          return Vector.of(this.e1 * that, this.e2 * that);
+        }
+        dist(that){
+          let vec = that? that.add(this.aInv): this;
+          return Math.sqrt(vec.e1**2 + vec.e2**2);
+        }
       }
-      console.log(`Gamepad Connected!`);
-    }).bind(this));
-     window.addEventListener('gamepaddisconnected', (function (event){
-      console.log(`Gamepad Disconnected!`);
-    }).bind(this));
-  }
-  get control(){
-    return [this.controls.nonpad, this.controls.pad];
-  }
-  pressed(index){
-    return this.control[0].buttons[index]?.pressed || this.control[1].buttons[index]?.pressed;
-  }
-  axes(index){
-    return this.control[0].axes[index] + this.control[1].axes[index];
-  }
-}
-
-const keyMap = new Map([
-  ['upDown', 1],
-  ['rightLeft', 0],
-  ['confirm', 0],
-  ['cancel', 1],
-  ['action', 2],
-  ['menu', 3],
-  ['altFire', 5],
-  ['fire', 7],
-  ['jump', 10],
-  ['crouch', 11],
-]);
-
-let testLoop00 = (particle, controller)=>()=>{
-    particle.pos = particle.pos.add(new Vector(controller.axes(keyMap.get('rightLeft'))*3,controller.axes(keyMap.get('upDown'))*-3));
-    context.fillStyle = controller.pressed(keyMap.get('fire'))? 'rgb(200,100,100)' :
-    controller.pressed(keyMap.get('confirm'))? 'rgb(100,200,100)' :
-    controller.pressed(keyMap.get('cancel'))? 'rgb(100,100,100)' :
-    'rgb(200,200,200)';
-    viewport.clear();
-    ((vec,size=1)=>(context.beginPath(),context.moveTo(vec.e1,vec.e2),context.arc(vec.e1,vec.e2,size,0,2*Math.PI),context.fill()))(particle.pos,4);
-    window.requestAnimationFrame(testLoop00(particle, controller));
-}
-
-window.requestAnimationFrame(testLoop00(new PointMass({position:new Vector(0,0)}), new Controls))
+      class PointMass {
+        constructor({position, velocity, dampening = 0.999, mass = 1, color = '#ffffff'}={}){
+          this.pos = position;
+          this.vel = velocity;
+          this.damp = dampening;
+          this.mass = mass;
+          this.massInv = 1/mass;
+          this.color = color;
+        }
+        static of({position, velocity, mass, color, dampening}={}){
+          return Reflect.construct(PointMass, [{position, velocity, mass, color, dampening}]);
+        }
+        integrate(time, acceleration){
+          const classThis = this;
+          let position = this.pos.add(this.vel.scale(time));
+          let velocity = this.vel.scale(this.damp**time).add(acceleration.scale(time));
+          return PointMass.of({
+            mass: classThis.mass,
+            color: classThis.color,
+            dampening: classThis.damp,
+            position,
+            velocity,
+          });
+        }
+      }
+      let testLoop00 = (particle, controller)=>()=>{
+        particle.pos = particle.pos.add(new Vector(controller.axes(keyMap.get('rightLeft'))*3,controller.axes(keyMap.get('upDown'))*-3));
+        draw.fillStyle = controller.pressed(keyMap.get('fire'))? 'rgb(200,100,100)' :
+          controller.pressed(keyMap.get('confirm'))? 'rgb(100,200,100)' :
+          controller.pressed(keyMap.get('cancel'))? 'rgb(100,100,100)' :
+          'rgb(200,200,200)';
+        draw.clear();
+        draw.point(particle.pos, 4);
+        window.requestAnimationFrame(testLoop00(particle, controller));
+      }
+      window.requestAnimationFrame(testLoop00(new PointMass({position:new Vector(0,0)}), new Controls))
     </script>
   </body>
 </html>
