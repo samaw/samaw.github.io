@@ -4,19 +4,12 @@ import * as interactive from "https://samaw.github.io/Interactive-webapp/modules
 globalThis.functions = functions;
 globalThis.interactive = interactive;
 
-const { nChooseK, diceValueProbability } = functions;
+const { nChooseK, diceValueProbability, parseURLHash, Noise } = functions;
 const { Draw, Controls, keyMap } = interactive;
 //...
-let parseURLHash = (urlHash) => {
-    let isDataURL = urlHash.includes('data:');
-    let isJSON = urlHash.includes('application/json');
-    let isBase64 = urlHash.includes('base64,');
-    let text = isDataURL || isBase64 ? urlHash.slice(urlHash.indexOf(',') + 1) : urlHash;
-    return isJSON ? JSON.parse(isBase64 ? atob(text) : decodeURI(text)) :
-        isBase64 ? atob(text) : decodeURI(text);
-}
-document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1));
-window.addEventListener('hashchange', () => { document.querySelector('#spot').innerText = parseURLHash(location.hash.slice(1)); }, false);
+
+let seed = parseURLHash(location.hash.slice(1)) || 'consistency';
+window.addEventListener('hashchange', () => { seed = parseURLHash(location.hash.slice(1)); }, false);
 //...
 let draw = new Draw;
 class Vector {
@@ -70,8 +63,10 @@ class PointMass {
         });
     }
 }
-let testLoop00 = (particle, controller) => () => {
-    particle.pos = particle.pos.add(new Vector(controller.axes(keyMap.get('rightLeft')) * 3, controller.axes(keyMap.get('upDown')) * -3));
+let testLoop00 = (particle, controller, noise) => () => {
+    let [x, y] = [Math.round(noise.nextInSequence() * 2 - 1), Math.round(noise.nextInSequence() * 2 - 1)];
+    let nudge = new Vector((controller.axes(keyMap.get('rightLeft')) || x) * 3, (controller.axes(keyMap.get('upDown')) || y) * -3)
+    particle.pos = particle.pos.add(nudge);
     draw.fillStyle = controller.pressed(keyMap.get('fire')) ? 'rgb(200,100,100)' :
         controller.pressed(keyMap.get('confirm')) ? 'rgb(100,200,100)' :
             controller.pressed(keyMap.get('cancel')) ? 'rgb(100,100,100)' :
@@ -80,4 +75,4 @@ let testLoop00 = (particle, controller) => () => {
     draw.point(particle.pos, 4);
     window.requestAnimationFrame(testLoop00(particle, controller));
 }
-window.requestAnimationFrame(testLoop00(new PointMass({ position: new Vector(0, 0) }), new Controls))
+window.requestAnimationFrame(testLoop00(new PointMass({ position: new Vector(0, 0) }), new Controls, new Noise(seed)))
