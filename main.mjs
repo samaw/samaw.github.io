@@ -73,6 +73,6 @@ let testLoop00 = (particle, controller, noise) => () => {
                 'rgb(200,200,200)';
     draw.clear();
     draw.point(particle.pos, 4);
-    window.requestAnimationFrame(testLoop00(particle, controller));
+    window.requestAnimationFrame(testLoop00(particle, controller, noise));
 }
 window.requestAnimationFrame(testLoop00(new PointMass({ position: new Vector(0, 0) }), new Controls, new Noise(seed)))
